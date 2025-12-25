@@ -1,8 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Store, LogIn, User } from 'lucide-react';
+import { Menu, X, Store, LogIn, User, LayoutDashboard, ShoppingBag, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
@@ -51,21 +60,59 @@ const Header = () => {
               {isLoading ? (
                 <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
               ) : user ? (
-                <>
-                  <Link 
-                    to={isAdmin ? "/admin" : "/dashboard"} 
-                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <User className="w-4 h-4" />
-                    {profile?.name || 'لوحة التحكم'}
-                  </Link>
-                  <button 
-                    onClick={signOut}
-                    className="text-sm font-medium text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    تسجيل الخروج
-                  </button>
-                </>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <User className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                      <span className="text-sm font-medium max-w-[100px] truncate">
+                        {profile?.name || 'حسابي'}
+                      </span>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">{profile?.name || 'مستخدم'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                        <LayoutDashboard className="w-4 h-4" />
+                        لوحة التحكم
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                        <ShoppingBag className="w-4 h-4" />
+                        متاجري
+                      </Link>
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin" className="flex items-center gap-2 cursor-pointer text-primary">
+                            <Settings className="w-4 h-4" />
+                            لوحة الإدارة
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={signOut}
+                      className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      تسجيل الخروج
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <>
                   <Link 
@@ -115,17 +162,48 @@ const Header = () => {
               ))}
               {user ? (
                 <>
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{profile?.name || 'مستخدم'}</p>
+                        <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                      </div>
+                    </div>
+                  </div>
                   <Link
-                    to={isAdmin ? "/admin" : "/dashboard"}
+                    to="/dashboard"
                     onClick={() => setIsOpen(false)}
-                    className="block py-2 text-lg font-medium hover:text-primary transition-colors"
+                    className="flex items-center gap-3 py-2 text-lg font-medium hover:text-primary transition-colors"
                   >
+                    <LayoutDashboard className="w-5 h-5" />
                     لوحة التحكم
                   </Link>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 py-2 text-lg font-medium hover:text-primary transition-colors"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    متاجري
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 py-2 text-lg font-medium text-primary hover:opacity-80 transition-colors"
+                    >
+                      <Settings className="w-5 h-5" />
+                      لوحة الإدارة
+                    </Link>
+                  )}
                   <button
                     onClick={() => { signOut(); setIsOpen(false); }}
-                    className="block w-full text-right py-2 text-lg font-medium text-destructive hover:opacity-80 transition-colors"
+                    className="flex items-center gap-3 w-full text-right py-2 text-lg font-medium text-destructive hover:opacity-80 transition-colors"
                   >
+                    <LogOut className="w-5 h-5" />
                     تسجيل الخروج
                   </button>
                 </>
@@ -134,8 +212,9 @@ const Header = () => {
                   <Link
                     to="/auth"
                     onClick={() => setIsOpen(false)}
-                    className="block py-2 text-lg font-medium hover:text-primary transition-colors"
+                    className="flex items-center gap-3 py-2 text-lg font-medium hover:text-primary transition-colors"
                   >
+                    <LogIn className="w-5 h-5" />
                     تسجيل الدخول
                   </Link>
                   <Link
