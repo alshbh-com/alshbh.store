@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -6,132 +6,193 @@ import {
   Settings, 
   LogOut, 
   Search,
-  MoreVertical,
   Check,
   X,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Crown,
+  Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-interface User {
+interface UserProfile {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  whatsapp: string;
-  subscription: string;
-  storesCount: number;
-  createdAt: string;
-  isActive: boolean;
+  phone: string | null;
+  whatsapp_number: string | null;
+  role: string;
+  subscription_plan_id: string | null;
+  is_active: boolean;
+  created_at: string;
 }
 
-interface StoreListing {
+interface StoreData {
   id: string;
   name: string;
   slug: string;
-  ownerName: string;
-  productsCount: number;
-  subscription: string;
-  isActive: boolean;
+  owner_id: string;
+  brand_type: string;
+  is_active: boolean;
+  created_at: string;
+  owner?: { name: string };
 }
 
-const mockUsers: User[] = [
-  { id: '1', name: 'أحمد محمد', email: 'ahmed@example.com', phone: '01012345678', whatsapp: '201012345678', subscription: 'monthly', storesCount: 2, createdAt: '2024-01-15', isActive: true },
-  { id: '2', name: 'سارة علي', email: 'sara@example.com', phone: '01123456789', whatsapp: '201123456789', subscription: 'free', storesCount: 1, createdAt: '2024-02-20', isActive: true },
-  { id: '3', name: 'محمد حسن', email: 'mohamed@example.com', phone: '01234567890', whatsapp: '201234567890', subscription: 'yearly', storesCount: 3, createdAt: '2024-03-10', isActive: false },
-];
-
-const mockStores: StoreListing[] = [
-  { id: '1', name: 'متجر الأزياء', slug: 'fashion-store', ownerName: 'أحمد محمد', productsCount: 25, subscription: 'monthly', isActive: true },
-  { id: '2', name: 'متجر التقنية', slug: 'tech-store', ownerName: 'سارة علي', productsCount: 5, subscription: 'free', isActive: true },
-  { id: '3', name: 'متجر الفخامة', slug: 'luxury-store', ownerName: 'محمد حسن', productsCount: 50, subscription: 'yearly', isActive: false },
-];
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  name_ar: string;
+}
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const { user, profile, signOut, isLoading: authLoading, isAdmin } = useAuth();
+  const { toast } = useToast();
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [stores, setStores] = useState<StoreData[]>([]);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [activeTab, setActiveTab] = useState<'users' | 'stores' | 'settings'>('users');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleLogin = () => {
-    if (password === '01278006248@01204486263') {
-      setIsAuthenticated(true);
-      setError('');
-    } else {
-      setError('كلمة المرور غير صحيحة');
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate('/auth');
+      } else if (profile && !isAdmin) {
+        toast({
+          title: 'غير مصرح',
+          description: 'هذه الصفحة للأدمن فقط',
+          variant: 'destructive'
+        });
+        navigate('/dashboard');
+      }
     }
+  }, [user, profile, isAdmin, authLoading, navigate]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchData();
+    }
+  }, [isAdmin]);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    
+    // Fetch users
+    const { data: usersData } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (usersData) setUsers(usersData);
+
+    // Fetch stores
+    const { data: storesData } = await supabase
+      .from('stores')
+      .select('*, owner:profiles(name)')
+      .order('created_at', { ascending: false });
+
+    if (storesData) setStores(storesData as any);
+
+    // Fetch plans
+    const { data: plansData } = await supabase
+      .from('subscription_plans')
+      .select('id, name, name_ar');
+
+    if (plansData) setPlans(plansData);
+
+    setIsLoading(false);
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setPassword('');
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-8 max-w-md w-full"
-        >
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Settings className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-            <p className="text-muted-foreground text-sm mt-2">أدخل كلمة المرور للوصول</p>
-          </div>
+  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: !currentStatus })
+      .eq('id', userId);
 
-          <div className="space-y-4">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder="كلمة المرور"
-              className="input-glass text-center"
-              dir="ltr"
-            />
-            {error && (
-              <p className="text-destructive text-sm text-center">{error}</p>
-            )}
-            <button onClick={handleLogin} className="btn-primary w-full">
-              دخول
-            </button>
-          </div>
-        </motion.div>
+    if (!error) {
+      setUsers(users.map(u => 
+        u.id === userId ? { ...u, is_active: !currentStatus } : u
+      ));
+      toast({ title: 'تم تحديث حالة المستخدم' });
+    }
+  };
+
+  const toggleStoreStatus = async (storeId: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('stores')
+      .update({ is_active: !currentStatus })
+      .eq('id', storeId);
+
+    if (!error) {
+      setStores(stores.map(s => 
+        s.id === storeId ? { ...s, is_active: !currentStatus } : s
+      ));
+      toast({ title: 'تم تحديث حالة المتجر' });
+    }
+  };
+
+  const updateUserPlan = async (userId: string, planId: string) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ subscription_plan_id: planId })
+      .eq('id', userId);
+
+    if (!error) {
+      fetchData();
+      toast({ title: 'تم تحديث اشتراك المستخدم' });
+    }
+  };
+
+  const getPlanName = (planId: string | null) => {
+    if (!planId) return 'مجاني';
+    const plan = plans.find(p => p.id === planId);
+    return plan?.name_ar || 'مجاني';
+  };
+
+  const filteredUsers = users.filter(user => 
+    user.name.includes(searchQuery) || 
+    user.email.includes(searchQuery) ||
+    (user.phone?.includes(searchQuery) || false)
+  );
+
+  const filteredStores = stores.filter(store =>
+    store.name.includes(searchQuery) ||
+    store.slug.includes(searchQuery)
+  );
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  const filteredUsers = mockUsers.filter(user => 
-    user.name.includes(searchQuery) || 
-    user.email.includes(searchQuery) ||
-    user.phone.includes(searchQuery)
-  );
-
-  const filteredStores = mockStores.filter(store =>
-    store.name.includes(searchQuery) ||
-    store.slug.includes(searchQuery) ||
-    store.ownerName.includes(searchQuery)
-  );
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" dir="rtl">
       {/* Sidebar */}
-      <aside className="w-64 glass-card rounded-none border-l border-border/50 p-6 hidden md:block">
+      <aside className="w-64 glass-card rounded-none border-l border-border/50 p-6 hidden md:flex flex-col">
         <div className="mb-8">
           <h2 className="text-xl font-bold gradient-text">لوحة الأدمن</h2>
           <p className="text-muted-foreground text-sm">alshbh.store</p>
         </div>
 
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1">
           {[
             { id: 'users', label: 'المستخدمين', icon: Users },
             { id: 'stores', label: 'المتاجر', icon: Store },
@@ -154,7 +215,7 @@ const AdminPanel = () => {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-destructive hover:bg-destructive/10 transition-all mt-auto absolute bottom-6 left-6 right-6"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-destructive hover:bg-destructive/10 transition-all mt-4"
         >
           <LogOut className="w-5 h-5" />
           تسجيل خروج
@@ -172,21 +233,23 @@ const AdminPanel = () => {
               {activeTab === 'settings' && 'الإعدادات'}
             </h1>
             <p className="text-muted-foreground text-sm">
-              {activeTab === 'users' && `${mockUsers.length} مستخدم مسجل`}
-              {activeTab === 'stores' && `${mockStores.length} متجر نشط`}
+              {activeTab === 'users' && `${users.length} مستخدم مسجل`}
+              {activeTab === 'stores' && `${stores.length} متجر`}
             </p>
           </div>
 
-          <div className="relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث..."
-              className="input-glass pr-12 w-64"
-            />
-          </div>
+          {activeTab !== 'settings' && (
+            <div className="relative">
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث..."
+                className="input-glass pr-12 w-64"
+              />
+            </div>
+          )}
         </div>
 
         {/* Users Tab */}
@@ -199,7 +262,6 @@ const AdminPanel = () => {
                     <th className="text-right px-6 py-4 text-sm font-medium">المستخدم</th>
                     <th className="text-right px-6 py-4 text-sm font-medium">التواصل</th>
                     <th className="text-right px-6 py-4 text-sm font-medium">الاشتراك</th>
-                    <th className="text-right px-6 py-4 text-sm font-medium">المتاجر</th>
                     <th className="text-right px-6 py-4 text-sm font-medium">الحالة</th>
                     <th className="text-right px-6 py-4 text-sm font-medium">إجراءات</th>
                   </tr>
@@ -214,39 +276,41 @@ const AdminPanel = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm" dir="ltr">{user.phone}</p>
+                        <p className="text-sm" dir="ltr">{user.phone || user.whatsapp_number || '-'}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          user.subscription === 'yearly' ? 'bg-primary/20 text-primary' :
-                          user.subscription === 'monthly' ? 'bg-secondary/20 text-secondary' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {user.subscription}
-                        </span>
+                        <select
+                          value={user.subscription_plan_id || ''}
+                          onChange={(e) => updateUserPlan(user.id, e.target.value)}
+                          className="bg-muted/50 rounded-lg px-3 py-1 text-sm border-0"
+                        >
+                          <option value="">مجاني</option>
+                          {plans.map(plan => (
+                            <option key={plan.id} value={plan.id}>{plan.name_ar}</option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-medium">{user.storesCount}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {user.isActive ? (
-                          <span className="flex items-center gap-1 text-green-500 text-sm">
-                            <Check className="w-4 h-4" /> نشط
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-destructive text-sm">
-                            <X className="w-4 h-4" /> معطل
-                          </span>
-                        )}
+                        <button
+                          onClick={() => toggleUserStatus(user.id, user.is_active)}
+                          className={`flex items-center gap-1 text-sm ${
+                            user.is_active ? 'text-green-500' : 'text-destructive'
+                          }`}
+                        >
+                          {user.is_active ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                          {user.is_active ? 'نشط' : 'معطل'}
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <button className="p-2 rounded-lg hover:bg-muted transition-colors">
-                            <Edit className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button className="p-2 rounded-lg hover:bg-destructive/10 transition-colors">
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </button>
+                          <a
+                            href={`https://wa.me/${user.whatsapp_number || user.phone}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg hover:bg-green-500/10 transition-colors text-green-500"
+                          >
+                            📱
+                          </a>
                         </div>
                       </td>
                     </tr>
@@ -266,8 +330,7 @@ const AdminPanel = () => {
                   <tr>
                     <th className="text-right px-6 py-4 text-sm font-medium">المتجر</th>
                     <th className="text-right px-6 py-4 text-sm font-medium">المالك</th>
-                    <th className="text-right px-6 py-4 text-sm font-medium">المنتجات</th>
-                    <th className="text-right px-6 py-4 text-sm font-medium">الاشتراك</th>
+                    <th className="text-right px-6 py-4 text-sm font-medium">النوع</th>
                     <th className="text-right px-6 py-4 text-sm font-medium">الحالة</th>
                     <th className="text-right px-6 py-4 text-sm font-medium">إجراءات</th>
                   </tr>
@@ -284,38 +347,28 @@ const AdminPanel = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm">{store.ownerName}</p>
+                        <p className="text-sm">{(store.owner as any)?.name || '-'}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-medium">{store.productsCount}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          store.subscription === 'yearly' ? 'bg-primary/20 text-primary' :
-                          store.subscription === 'monthly' ? 'bg-secondary/20 text-secondary' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {store.subscription}
+                        <span className="px-3 py-1 rounded-full text-xs bg-muted">
+                          {store.brand_type}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        {store.isActive ? (
-                          <span className="flex items-center gap-1 text-green-500 text-sm">
-                            <Check className="w-4 h-4" /> نشط
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-destructive text-sm">
-                            <X className="w-4 h-4" /> معطل
-                          </span>
-                        )}
+                        <button
+                          onClick={() => toggleStoreStatus(store.id, store.is_active)}
+                          className={`flex items-center gap-1 text-sm ${
+                            store.is_active ? 'text-green-500' : 'text-destructive'
+                          }`}
+                        >
+                          {store.is_active ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                          {store.is_active ? 'نشط' : 'معطل'}
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button className="p-2 rounded-lg hover:bg-muted transition-colors">
                             <Eye className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button className="p-2 rounded-lg hover:bg-muted transition-colors">
-                            <Edit className="w-4 h-4 text-muted-foreground" />
                           </button>
                           <button className="p-2 rounded-lg hover:bg-destructive/10 transition-colors">
                             <Trash2 className="w-4 h-4 text-destructive" />
