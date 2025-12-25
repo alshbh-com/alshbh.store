@@ -63,7 +63,9 @@ const AdminPanel = () => {
     if (!authLoading) {
       if (!user) {
         navigate('/auth');
-      } else if (profile && !isAdmin) {
+        return;
+      }
+      if (profile && !isAdmin) {
         toast({
           title: 'غير مصرح',
           description: 'هذه الصفحة للأدمن فقط',
@@ -171,7 +173,19 @@ const AdminPanel = () => {
     store.slug.includes(searchQuery)
   );
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
