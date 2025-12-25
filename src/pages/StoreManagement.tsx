@@ -11,7 +11,8 @@ import {
   Save,
   X,
   AlertTriangle,
-  Crown
+  Crown,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -321,12 +322,21 @@ const StoreManagement = () => {
                 <p className="text-sm text-muted-foreground">إدارة المنتجات</p>
               </div>
             </div>
-            <button
-              onClick={() => window.open(`/store/${store.slug}`, '_blank')}
-              className="text-sm text-primary hover:underline"
-            >
-              عرض المتجر ←
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/store-settings/${storeId}`)}
+                className="p-2 hover:bg-muted rounded-xl transition-colors"
+                title="إعدادات المتجر"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => window.open(`/store/${store.slug}`, '_blank')}
+                className="text-sm text-primary hover:underline"
+              >
+                عرض المتجر ←
+              </button>
+            </div>
           </div>
         </div>
       </header>
