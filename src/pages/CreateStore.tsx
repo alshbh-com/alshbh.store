@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Store as StoreIcon, Palette, Package, ArrowLeft, ArrowRight, Sparkles, Check } from 'lucide-react';
+import { Store as StoreIcon, Palette, Package, ArrowLeft, ArrowRight, Sparkles, Check, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type BrandType = 'fashion' | 'food' | 'tech' | 'luxury' | 'beauty' | 'home' | 'other' | '';
 
@@ -28,7 +31,10 @@ const colorThemes = [
 
 const CreateStore = () => {
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     storeName: '',
     storeSlug: '',
@@ -37,6 +43,12 @@ const CreateStore = () => {
     colorTheme: 0,
     currency: 'EGP' as 'EGP' | 'SAR' | 'AED' | 'USD',
   });
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   const handleSlugChange = (name: string) => {
     const slug = name
@@ -50,16 +62,82 @@ const CreateStore = () => {
   const nextStep = () => setStep(step + 1);
   const prevStep = () => setStep(step - 1);
 
-  const handleSubmit = () => {
-    // Store data in localStorage for demo
-    localStorage.setItem('demoStore', JSON.stringify({
-      ...formData,
-      id: 'demo-' + Date.now(),
-      products: [],
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    }));
-    navigate('/demo-store');
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: 'خطأ',
+        description: 'يجب تسجيل الدخول أولاً',
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Check if slug is already taken
+      const { data: existingStore } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('slug', formData.storeSlug)
+        .maybeSingle();
+
+      if (existingStore) {
+        toast({
+          title: 'خطأ',
+          description: 'هذا الرابط مستخدم بالفعل، اختر اسماً آخر',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        setStep(1);
+        return;
+      }
+
+      const selectedTheme = colorThemes[formData.colorTheme];
+
+      const { data, error } = await supabase
+        .from('stores')
+        .insert({
+          name: formData.storeName,
+          slug: formData.storeSlug,
+          brand_type: formData.brandType,
+          whatsapp_number: formData.whatsappNumber,
+          primary_color: selectedTheme.primary,
+          secondary_color: selectedTheme.secondary,
+          currency: formData.currency,
+          owner_id: user.id,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating store:', error);
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء إنشاء المتجر',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast({
+        title: 'تم بنجاح! 🎉',
+        description: 'تم إنشاء متجرك بنجاح',
+      });
+
+      navigate(`/store/${data.slug}`);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ غير متوقع',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+    }
   };
 
   const isStepValid = () => {
@@ -74,6 +152,18 @@ const CreateStore = () => {
         return true;
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -267,6 +357,7 @@ const CreateStore = () => {
                 <button
                   onClick={prevStep}
                   className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={isSubmitting}
                 >
                   <ArrowRight className="w-5 h-5" />
                   السابق
@@ -287,10 +378,15 @@ const CreateStore = () => {
               ) : (
                 <button
                   onClick={handleSubmit}
-                  className="btn-primary py-3 px-8 flex items-center gap-2"
+                  disabled={isSubmitting}
+                  className="btn-primary py-3 px-8 flex items-center gap-2 disabled:opacity-50"
                 >
-                  <Sparkles className="w-5 h-5" />
-                  إنشاء المتجر
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-5 h-5" />
+                  )}
+                  {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء المتجر'}
                 </button>
               )}
             </div>

@@ -66,7 +66,17 @@ const ClientDashboard = () => {
       .eq('owner_id', user?.id);
 
     if (!error && data) {
-      setStores(data);
+      // Get product count for each store
+      const storesWithCounts = await Promise.all(
+        data.map(async (store) => {
+          const { count } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('store_id', store.id);
+          return { ...store, products_count: count || 0 };
+        })
+      );
+      setStores(storesWithCounts);
     }
     setIsLoading(false);
   };
@@ -212,6 +222,31 @@ const ClientDashboard = () => {
               </button>
             </div>
 
+            {/* Plan Limit Warning */}
+            {getCurrentPlan() && stores.length > 0 && (
+              <div className="mb-6 glass-card p-4 bg-primary/5 border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">خطتك: {getCurrentPlan()?.name_ar}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {getCurrentPlan()?.max_products === -1 
+                        ? 'منتجات غير محدودة' 
+                        : `حد المنتجات: ${getCurrentPlan()?.max_products} منتج لكل متجر`
+                      }
+                    </p>
+                  </div>
+                  {getCurrentPlan()?.price === 0 && (
+                    <button
+                      onClick={() => setActiveTab('subscription')}
+                      className="text-primary hover:underline text-sm"
+                    >
+                      ترقية الخطة
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {stores.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -255,11 +290,17 @@ const ClientDashboard = () => {
 
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
                       <Package className="w-4 h-4" />
-                      <span>0 منتج</span>
+                      <span>{store.products_count || 0} منتج</span>
+                      {getCurrentPlan()?.max_products !== -1 && (
+                        <span className="text-xs">/ {getCurrentPlan()?.max_products}</span>
+                      )}
                     </div>
 
                     <div className="flex gap-2">
-                      <button className="flex-1 btn-primary py-2 flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => window.open(`/store/${store.slug}`, '_blank')}
+                        className="flex-1 btn-primary py-2 flex items-center justify-center gap-2"
+                      >
                         <Eye className="w-4 h-4" />
                         عرض
                       </button>
