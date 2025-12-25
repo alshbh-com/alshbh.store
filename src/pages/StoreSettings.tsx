@@ -7,11 +7,12 @@ import {
   Save,
   Store as StoreIcon,
   Palette,
-  Image,
+  Image as ImageIcon,
   Settings,
   Trash2,
   Eye
 } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -317,7 +318,7 @@ const StoreSettings = () => {
               <span className="hidden sm:inline">المظهر</span>
             </TabsTrigger>
             <TabsTrigger value="media" className="flex items-center gap-2">
-              <Image className="w-4 h-4" />
+              <ImageIcon className="w-4 h-4" />
               <span className="hidden sm:inline">الوسائط</span>
             </TabsTrigger>
           </TabsList>
@@ -567,56 +568,32 @@ const StoreSettings = () => {
               className="glass-card p-6 space-y-6"
             >
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <Image className="w-5 h-5" />
+                <ImageIcon className="w-5 h-5" />
                 الصور والوسائط
               </h2>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">شعار المتجر (Logo)</label>
-                <input
-                  type="url"
-                  value={formData.logo_url}
-                  onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                  placeholder="https://example.com/logo.png"
-                  className="input-glass text-left"
-                  dir="ltr"
-                />
-                {formData.logo_url && (
-                  <div className="mt-3">
-                    <img
-                      src={formData.logo_url}
-                      alt="Logo preview"
-                      className="w-24 h-24 rounded-xl object-cover border border-border"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-3">شعار المتجر (Logo)</label>
+                  <ImageUpload
+                    value={formData.logo_url}
+                    onChange={(url) => setFormData({ ...formData, logo_url: url })}
+                    folder={`stores/${storeId}/logo`}
+                    aspectRatio="logo"
+                    placeholder="رفع الشعار"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">صورة الغلاف (Cover)</label>
-                <input
-                  type="url"
-                  value={formData.cover_url}
-                  onChange={(e) => setFormData({ ...formData, cover_url: e.target.value })}
-                  placeholder="https://example.com/cover.jpg"
-                  className="input-glass text-left"
-                  dir="ltr"
-                />
-                {formData.cover_url && (
-                  <div className="mt-3">
-                    <img
-                      src={formData.cover_url}
-                      alt="Cover preview"
-                      className="w-full max-w-md h-32 rounded-xl object-cover border border-border"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium mb-3">صورة الغلاف (Cover)</label>
+                  <ImageUpload
+                    value={formData.cover_url}
+                    onChange={(url) => setFormData({ ...formData, cover_url: url })}
+                    folder={`stores/${storeId}/cover`}
+                    aspectRatio="cover"
+                    placeholder="رفع صورة الغلاف"
+                  />
+                </div>
               </div>
             </motion.div>
           </TabsContent>

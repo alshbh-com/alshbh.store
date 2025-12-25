@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import ImageUpload from '@/components/ImageUpload';
 import {
   Dialog,
   DialogContent,
@@ -517,14 +518,13 @@ const StoreManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">رابط الصورة</label>
-              <input
-                type="url"
+              <label className="block text-sm font-medium mb-2">صورة المنتج</label>
+              <ImageUpload
                 value={productForm.image_url}
-                onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
-                placeholder="https://..."
-                className="input-glass text-left"
-                dir="ltr"
+                onChange={(url) => setProductForm({ ...productForm, image_url: url })}
+                folder={`products/${storeId}`}
+                aspectRatio="square"
+                placeholder="اضغط لرفع صورة المنتج"
               />
             </div>
 
