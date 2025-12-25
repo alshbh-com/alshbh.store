@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import CreateStore from "./pages/CreateStore";
 import DemoStore from "./pages/DemoStore";
 import StorePage from "./pages/StorePage";
+import StoreManagement from "./pages/StoreManagement";
 import AdminPanel from "./pages/AdminPanel";
 import Auth from "./pages/Auth";
 import ClientDashboard from "./pages/ClientDashboard";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/create-store" element={<CreateStore />} />
             <Route path="/demo-store" element={<DemoStore />} />
             <Route path="/store/:slug" element={<StorePage />} />
+            <Route path="/manage-store/:storeId" element={<StoreManagement />} />
             <Route path="/admin" element={<AdminPanel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

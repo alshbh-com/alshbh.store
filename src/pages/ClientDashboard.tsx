@@ -304,9 +304,12 @@ const ClientDashboard = () => {
                         <Eye className="w-4 h-4" />
                         عرض
                       </button>
-                      <button className="flex-1 bg-muted hover:bg-muted/80 py-2 rounded-xl flex items-center justify-center gap-2 transition-colors">
+                      <button 
+                        onClick={() => navigate(`/manage-store/${store.id}`)}
+                        className="flex-1 bg-muted hover:bg-muted/80 py-2 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                      >
                         <Edit className="w-4 h-4" />
-                        تعديل
+                        إدارة
                       </button>
                     </div>
                   </motion.div>
