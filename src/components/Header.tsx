@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Store, MessageCircle } from 'lucide-react';
+import { Menu, X, Store, LogIn, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-
+import { useAuth } from '@/hooks/useAuth';
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-
+  const { user, profile, isAdmin, signOut, isLoading } = useAuth();
   const navLinks = [
     { href: '/', label: 'الرئيسية' },
     { href: '/#features', label: 'المميزات' },
@@ -48,9 +48,38 @@ const Header = () => {
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-4">
-              <Link to="/create-store" className="btn-primary py-2 px-6 text-sm">
-                أنشئ متجرك
-              </Link>
+              {isLoading ? (
+                <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+              ) : user ? (
+                <>
+                  <Link 
+                    to={isAdmin ? "/admin" : "/dashboard"} 
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    {profile?.name || 'لوحة التحكم'}
+                  </Link>
+                  <button 
+                    onClick={signOut}
+                    className="text-sm font-medium text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    تسجيل الخروج
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/auth" 
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    تسجيل الدخول
+                  </Link>
+                  <Link to="/auth" className="btn-primary py-2 px-6 text-sm">
+                    أنشئ متجرك
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -84,13 +113,40 @@ const Header = () => {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                to="/create-store"
-                onClick={() => setIsOpen(false)}
-                className="block btn-primary text-center mt-4"
-              >
-                أنشئ متجرك
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to={isAdmin ? "/admin" : "/dashboard"}
+                    onClick={() => setIsOpen(false)}
+                    className="block py-2 text-lg font-medium hover:text-primary transition-colors"
+                  >
+                    لوحة التحكم
+                  </Link>
+                  <button
+                    onClick={() => { signOut(); setIsOpen(false); }}
+                    className="block w-full text-right py-2 text-lg font-medium text-destructive hover:opacity-80 transition-colors"
+                  >
+                    تسجيل الخروج
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsOpen(false)}
+                    className="block py-2 text-lg font-medium hover:text-primary transition-colors"
+                  >
+                    تسجيل الدخول
+                  </Link>
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsOpen(false)}
+                    className="block btn-primary text-center mt-4"
+                  >
+                    أنشئ متجرك
+                  </Link>
+                </>
+              )}
             </nav>
           </motion.div>
         )}
