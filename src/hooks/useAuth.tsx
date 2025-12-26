@@ -38,32 +38,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    const [{ data: profileData, error: profileError }, { data: roleData, error: roleError }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle(),
+    ]);
 
-    if (error) {
-      console.warn('Error fetching profile:', error);
-      return;
+    if (profileError) {
+      console.warn('Error fetching profile:', profileError);
     }
 
-    if (data) {
-      setProfile(data as Profile);
+    if (roleError) {
+      console.warn('Error fetching role:', roleError);
     }
 
-    // Check if user has admin role in user_roles table
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
+    const hasAdminRole = roleData?.role === 'admin';
 
-    // Also check old profiles.role for backward compatibility
-    const hasAdminRole = roleData?.role === 'admin' || data?.role === 'admin';
+    // Set admin flag before exposing the profile to avoid admin-route race conditions
     setIsAdmin(hasAdminRole);
+    setProfile((profileData as Profile) ?? null);
   };
 
   const refreshProfile = async () => {
