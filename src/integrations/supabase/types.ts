@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_ips: {
+        Row: {
+          blocked_by: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          ip_address: string
+          reason: string | null
+        }
+        Insert: {
+          blocked_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_address: string
+          reason?: string | null
+        }
+        Update: {
+          blocked_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
@@ -66,10 +117,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ban_reason: string | null
           created_at: string
           email: string
           id: string
           is_active: boolean
+          is_banned: boolean | null
+          last_login_at: string | null
           name: string
           phone: string | null
           role: string
@@ -78,10 +132,13 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          ban_reason?: string | null
           created_at?: string
           email: string
           id: string
           is_active?: boolean
+          is_banned?: boolean | null
+          last_login_at?: string | null
           name: string
           phone?: string | null
           role?: string
@@ -90,10 +147,13 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          ban_reason?: string | null
           created_at?: string
           email?: string
           id?: string
           is_active?: boolean
+          is_banned?: boolean | null
+          last_login_at?: string | null
           name?: string
           phone?: string | null
           role?: string
@@ -111,15 +171,53 @@ export type Database = {
           },
         ]
       }
+      store_analytics: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_analytics_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
+          badge_type: string | null
           brand_type: string
           cover_url: string | null
           created_at: string
           currency: string
+          custom_theme: Json | null
           description: string | null
+          enable_3d_effects: boolean | null
+          enable_animations: boolean | null
           id: string
           is_active: boolean
+          is_premium: boolean | null
+          is_suspended: boolean | null
           logo_url: string | null
           name: string
           owner_id: string
@@ -127,17 +225,24 @@ export type Database = {
           secondary_color: string
           slug: string
           subscription_plan_id: string | null
+          suspension_reason: string | null
           updated_at: string
           whatsapp_number: string
         }
         Insert: {
+          badge_type?: string | null
           brand_type?: string
           cover_url?: string | null
           created_at?: string
           currency?: string
+          custom_theme?: Json | null
           description?: string | null
+          enable_3d_effects?: boolean | null
+          enable_animations?: boolean | null
           id?: string
           is_active?: boolean
+          is_premium?: boolean | null
+          is_suspended?: boolean | null
           logo_url?: string | null
           name: string
           owner_id: string
@@ -145,17 +250,24 @@ export type Database = {
           secondary_color?: string
           slug: string
           subscription_plan_id?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           whatsapp_number: string
         }
         Update: {
+          badge_type?: string | null
           brand_type?: string
           cover_url?: string | null
           created_at?: string
           currency?: string
+          custom_theme?: Json | null
           description?: string | null
+          enable_3d_effects?: boolean | null
+          enable_animations?: boolean | null
           id?: string
           is_active?: boolean
+          is_premium?: boolean | null
+          is_suspended?: boolean | null
           logo_url?: string | null
           name?: string
           owner_id?: string
@@ -163,6 +275,7 @@ export type Database = {
           secondary_color?: string
           slug?: string
           subscription_plan_id?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           whatsapp_number?: string
         }
@@ -222,15 +335,102 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          activated_by: string | null
+          created_at: string
+          currency: string | null
+          end_date: string | null
+          id: string
+          is_lifetime: boolean | null
+          max_products: number | null
+          notes: string | null
+          plan_type: string
+          price_paid: number | null
+          start_date: string
+          store_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_by?: string | null
+          created_at?: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          is_lifetime?: boolean | null
+          max_products?: number | null
+          notes?: string | null
+          plan_type?: string
+          price_paid?: number | null
+          start_date?: string
+          store_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_by?: string | null
+          created_at?: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          is_lifetime?: boolean | null
+          max_products?: number | null
+          notes?: string | null
+          plan_type?: string
+          price_paid?: number | null
+          start_date?: string
+          store_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -357,6 +557,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

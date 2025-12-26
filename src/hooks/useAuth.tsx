@@ -8,9 +8,11 @@ interface Profile {
   email: string;
   phone: string | null;
   whatsapp_number: string | null;
-  role: 'admin' | 'client';
+  role: string;
   subscription_plan_id: string | null;
   is_active: boolean;
+  is_banned?: boolean;
+  ban_reason?: string | null;
   created_at: string;
 }
 
@@ -32,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -49,6 +52,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (data) {
       setProfile(data as Profile);
     }
+
+    // Check if user has admin role in user_roles table
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    // Also check old profiles.role for backward compatibility
+    const hasAdminRole = roleData?.role === 'admin' || data?.role === 'admin';
+    setIsAdmin(hasAdminRole);
   };
 
   const refreshProfile = async () => {
@@ -68,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!nextSession?.user) {
         setProfile(null);
+        setIsAdmin(false);
       } else {
         // Defer any Supabase calls to avoid auth-state deadlocks
         setTimeout(() => {
@@ -106,7 +122,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
       options: {
-        data: { name }
+        data: { name },
+        emailRedirectTo: `${window.location.origin}/`
       }
     });
     return { error };
@@ -123,6 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setIsAdmin(false);
   };
 
   return (
@@ -132,7 +150,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         profile,
         isLoading,
-        isAdmin: profile?.role === 'admin',
+        isAdmin,
         signUp,
         signIn,
         signOut,
