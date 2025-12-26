@@ -60,6 +60,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
+import AdminPasswordGate from '@/components/AdminPasswordGate';
 
 interface UserProfile {
   id: string;
@@ -138,8 +139,13 @@ const SUBSCRIPTION_TYPES = [
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const { user, profile, signOut, isLoading: authLoading, isAdmin } = useAuth();
+  const { user, profile, signOut, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  
+  // Admin password authentication
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    return sessionStorage.getItem('admin_authenticated') === 'true';
+  });
   
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [stores, setStores] = useState<StoreData[]>([]);
@@ -173,33 +179,16 @@ const AdminPanel = () => {
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
   const [blockedIp, setBlockedIp] = useState('');
   const [blockedIps, setBlockedIps] = useState<{ id: string; ip_address: string; reason: string | null }[]>([]);
+  
+  // Show password gate if not authenticated
+  if (!isAdminAuthenticated) {
+    return <AdminPasswordGate onSuccess={() => setIsAdminAuthenticated(true)} />;
+  }
 
   useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
-    // Wait for profile to load before checking admin status
-    if (!profile) return;
-    
-    if (!isAdmin) {
-      toast({
-        title: 'غير مصرح',
-        description: 'هذه الصفحة للأدمن فقط',
-        variant: 'destructive'
-      });
-      navigate('/dashboard');
-    }
-  }, [user, profile, isAdmin, authLoading, navigate, toast]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchAllData();
-    }
-  }, [isAdmin]);
+    // Fetch all data when admin is authenticated
+    fetchAllData();
+  }, [isAdminAuthenticated]);
 
   const fetchAllData = async () => {
     setIsLoading(true);
@@ -532,7 +521,7 @@ const AdminPanel = () => {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!isAdminAuthenticated) {
     return null;
   }
 
