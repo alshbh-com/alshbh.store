@@ -60,52 +60,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const init = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
+    const applySession = (nextSession: Session | null) => {
+      if (!isMounted) return;
 
-        setSession(session);
-        setUser(session?.user ?? null);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
 
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error('Auth init error:', error);
-        if (!isMounted) return;
-        setSession(null);
-        setUser(null);
+      if (!nextSession?.user) {
         setProfile(null);
-      } finally {
-        if (isMounted) setIsLoading(false);
+      } else {
+        // Defer any Supabase calls to avoid auth-state deadlocks
+        setTimeout(() => {
+          if (!isMounted) return;
+          void fetchProfile(nextSession.user.id);
+        }, 0);
       }
+
+      setIsLoading(false);
     };
 
-    void init();
+    // 1) Listen first (sync callback only)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      applySession(nextSession);
+    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        try {
-          if (!isMounted) return;
-
-          setSession(session);
-          setUser(session?.user ?? null);
-
-          if (session?.user) {
-            await fetchProfile(session.user.id);
-          } else {
-            setProfile(null);
-          }
-        } catch (error) {
-          console.error('Auth state change error:', error);
-        } finally {
-          if (isMounted) setIsLoading(false);
-        }
-      }
-    );
+    // 2) Then get initial session
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => applySession(session))
+      .catch((error) => {
+        console.error('Auth getSession error:', error);
+        applySession(null);
+      });
 
     return () => {
       isMounted = false;
