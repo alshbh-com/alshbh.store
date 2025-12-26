@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
-import { MessageCircle, Share2, Loader2, Store as StoreIcon } from 'lucide-react';
+import { MessageCircle, Share2, Loader2, Store as StoreIcon, ShoppingCart, Plus } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCart } from '@/hooks/useCart';
+import CartDrawer from '@/components/CartDrawer';
 
 interface Store {
   id: string;
@@ -36,6 +38,8 @@ const StorePage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
+  
+  const cart = useCart();
 
   useEffect(() => {
     if (slug) {
@@ -73,6 +77,15 @@ const StorePage = () => {
     }
 
     setIsLoading(false);
+  };
+
+  const handleAddToCart = (product: Product) => {
+    cart.addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image_url: product.image_url,
+    });
   };
 
   const handleWhatsAppOrder = (product: Product) => {
@@ -246,12 +259,12 @@ const StorePage = () => {
                         <span className="text-sm mr-1">{store.currency}</span>
                       </div>
                       <button
-                        onClick={() => handleWhatsAppOrder(product)}
+                        onClick={() => handleAddToCart(product)}
                         className="flex items-center gap-2 py-2 px-4 text-sm rounded-xl text-white transition-colors"
-                        style={{ backgroundColor: '#25D366' }}
+                        style={{ background: `linear-gradient(135deg, ${store.primary_color}, ${store.secondary_color})` }}
                       >
-                        <MessageCircle className="w-4 h-4" />
-                        اطلب الآن
+                        <Plus className="w-4 h-4" />
+                        أضف للسلة
                       </button>
                     </div>
                   </div>
@@ -262,16 +275,48 @@ const StorePage = () => {
         </div>
       </section>
 
+      {/* Floating Cart Button */}
+      <button
+        onClick={() => cart.setIsOpen(true)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform text-white"
+        style={{ background: `linear-gradient(135deg, ${store.primary_color}, ${store.secondary_color})` }}
+      >
+        <ShoppingCart className="w-7 h-7" />
+        {cart.totalItems > 0 && (
+          <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
+            {cart.totalItems}
+          </span>
+        )}
+      </button>
+
       {/* Floating WhatsApp Button */}
       <a
         href={`https://wa.me/${store.whatsapp_number}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform text-white"
+        className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform text-white"
         style={{ backgroundColor: '#25D366' }}
       >
         <MessageCircle className="w-7 h-7" />
       </a>
+
+      {/* Cart Drawer */}
+      <CartDrawer
+        isOpen={cart.isOpen}
+        onClose={() => cart.setIsOpen(false)}
+        items={cart.items}
+        onIncrement={cart.incrementQuantity}
+        onDecrement={cart.decrementQuantity}
+        onRemove={cart.removeItem}
+        onClear={cart.clearCart}
+        totalItems={cart.totalItems}
+        totalPrice={cart.totalPrice}
+        currency={store.currency}
+        storeName={store.name}
+        whatsappNumber={store.whatsapp_number}
+        primaryColor={store.primary_color}
+        secondaryColor={store.secondary_color}
+      />
 
       {/* QR Modal */}
       {showQR && (
