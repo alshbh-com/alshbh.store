@@ -132,11 +132,28 @@ const StorePage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl" style={dynamicStyles}>
+      {/* Cover Image */}
+      {store.cover_url && (
+        <div className="relative h-48 md:h-64 lg:h-80 w-full overflow-hidden">
+          <img 
+            src={store.cover_url} 
+            alt={`${store.name} cover`}
+            className="w-full h-full object-cover"
+          />
+          <div 
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(to bottom, transparent 0%, ${store.primary_color}30 50%, hsl(var(--background)) 100%)`
+            }}
+          />
+        </div>
+      )}
+
       {/* Hero Section with dynamic gradient */}
       <section 
-        className="pt-12 pb-12 px-4 relative overflow-hidden"
+        className={`${store.cover_url ? 'pt-0 -mt-16' : 'pt-12'} pb-12 px-4 relative overflow-hidden`}
         style={{
-          background: `linear-gradient(135deg, ${store.primary_color}15 0%, ${store.secondary_color}15 100%)`
+          background: store.cover_url ? 'transparent' : `linear-gradient(135deg, ${store.primary_color}15 0%, ${store.secondary_color}15 100%)`
         }}
       >
         <div className="container max-w-6xl mx-auto relative z-10">
