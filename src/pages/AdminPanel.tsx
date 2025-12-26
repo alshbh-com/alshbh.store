@@ -175,21 +175,25 @@ const AdminPanel = () => {
   const [blockedIps, setBlockedIps] = useState<{ id: string; ip_address: string; reason: string | null }[]>([]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
-      if (profile && !isAdmin) {
-        toast({
-          title: 'غير مصرح',
-          description: 'هذه الصفحة للأدمن فقط',
-          variant: 'destructive'
-        });
-        navigate('/dashboard');
-      }
+    if (authLoading) return;
+    
+    if (!user) {
+      navigate('/auth');
+      return;
     }
-  }, [user, profile, isAdmin, authLoading, navigate]);
+    
+    // Wait for profile to load before checking admin status
+    if (!profile) return;
+    
+    if (!isAdmin) {
+      toast({
+        title: 'غير مصرح',
+        description: 'هذه الصفحة للأدمن فقط',
+        variant: 'destructive'
+      });
+      navigate('/dashboard');
+    }
+  }, [user, profile, isAdmin, authLoading, navigate, toast]);
 
   useEffect(() => {
     if (isAdmin) {
